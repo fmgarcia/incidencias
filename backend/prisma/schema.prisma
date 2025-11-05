@@ -1,0 +1,240 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+model Client {
+  id            Int        @id @default(autoincrement()) @db.UnsignedInt
+  name          String     @db.VarChar(200)
+  legal_name    String?    @db.VarChar(300)
+  contact_name  String?    @db.VarChar(150)
+  contact_email String?    @db.VarChar(200)
+  contact_phone String?    @db.VarChar(50)
+  address       String?    @db.VarChar(400)
+  city          String?    @db.VarChar(100)
+  province      String?    @db.VarChar(100)
+  postal_code   String?    @db.VarChar(20)
+  country       String?    @default("España") @db.VarChar(100)
+  notes         String?    @db.Text
+  created_at    DateTime   @default(now()) @db.Timestamp(0)
+  updated_at    DateTime   @default(now()) @updatedAt @db.Timestamp(0)
+  incidents     Incident[]
+
+  @@unique([name, contact_email], name: "uq_clients_name_contact", map: "uq_clients_name_contact")
+  @@map("clients")
+}
+
+model User {
+  id                 Int          @id @default(autoincrement()) @db.UnsignedInt
+  username           String       @db.VarChar(100)
+  full_name          String?      @db.VarChar(200)
+  email              String?      @unique(map: "email") @db.VarChar(200)
+  phone              String?      @db.VarChar(50)
+  role               users_role   @default(user)
+  active             Boolean      @default(true)
+  password_hash      String?      @db.VarChar(255)
+  created_at         DateTime     @default(now()) @db.Timestamp(0)
+  updated_at         DateTime     @default(now()) @updatedAt @db.Timestamp(0)
+  attachments        Attachment[]
+  comments           Comment[]
+  incidents_assigned Incident[]   @relation("AssignedIncidents")
+  incidents_created  Incident[]   @relation("CreatedIncidents")
+  time_entries       TimeEntry[]
+
+  @@index([role], map: "idx_users_role")
+  @@map("users")
+}
+
+model Status {
+  id            Int        @id @default(autoincrement()) @db.UnsignedTinyInt
+  code          String     @unique(map: "uq_status_code") @db.VarChar(50)
+  label         String     @db.VarChar(100)
+  description   String?    @db.VarChar(255)
+  is_closed     Boolean    @default(false)
+  display_order Int?       @default(100) @db.UnsignedTinyInt
+  incidents     Incident[]
+
+  @@map("statuses")
+}
+
+model Priority {
+  id            Int        @id @default(autoincrement()) @db.UnsignedTinyInt
+  code          String     @unique(map: "uq_priority_code") @db.VarChar(50)
+  label         String     @db.VarChar(50)
+  sla_hours     Int?       @db.UnsignedInt
+  display_order Int?       @default(100) @db.UnsignedTinyInt
+  incidents     Incident[]
+
+  @@map("priorities")
+}
+
+model ProblemType {
+  id          Int        @id @default(autoincrement()) @db.UnsignedSmallInt
+  code        String     @unique(map: "uq_problem_types_code") @db.VarChar(80)
+  label       String     @db.VarChar(120)
+  description String?    @db.VarChar(255)
+  incidents   Incident[]
+
+  @@map("problem_types")
+}
+
+model Severity {
+  id            Int        @id @default(autoincrement()) @db.UnsignedTinyInt
+  label         String     @db.VarChar(50)
+  description   String?    @db.VarChar(255)
+  display_order Int?       @default(100) @db.UnsignedTinyInt
+  incidents     Incident[]
+
+  @@map("severities")
+}
+
+model Category {
+  id          Int        @id @default(autoincrement()) @db.UnsignedSmallInt
+  label       String     @db.VarChar(120)
+  description String?    @db.VarChar(255)
+  incidents   Incident[]
+
+  @@map("categories")
+}
+
+model Tag {
+  id        Int           @id @default(autoincrement()) @db.UnsignedSmallInt
+  label     String        @unique(map: "label") @db.VarChar(100)
+  incidents IncidentTag[]
+
+  @@map("tags")
+}
+
+model Incident {
+  id                 BigInt        @id @default(autoincrement()) @db.UnsignedBigInt
+  reference          String        @unique(map: "reference") @db.VarChar(50)
+  client_id          Int           @db.UnsignedInt
+  title              String        @db.VarChar(255)
+  description        String?       @db.Text
+  status_id          Int           @db.UnsignedTinyInt
+  priority_id        Int?          @db.UnsignedTinyInt
+  problem_type_id    Int?          @db.UnsignedSmallInt
+  severity_id        Int?          @db.UnsignedTinyInt
+  category_id        Int?          @db.UnsignedSmallInt
+  reported_by        String?       @db.VarChar(200)
+  reported_contact   String?       @db.VarChar(200)
+  assigned_to        Int?          @db.UnsignedInt
+  created_by         Int?          @db.UnsignedInt
+  opened_at          DateTime      @default(now()) @db.Timestamp(0)
+  due_at             DateTime?     @db.Timestamp(0)
+  closed_at          DateTime?     @db.Timestamp(0)
+  estimated_minutes  Int?          @default(0) @db.UnsignedInt
+  time_spent_minutes Int?          @default(0) @db.UnsignedInt
+  resolution         String?       @db.Text
+  root_cause         String?       @db.Text
+  sla_breach         Boolean       @default(false)
+  archived           Boolean       @default(false)
+  created_at         DateTime      @default(now()) @db.Timestamp(0)
+  updated_at         DateTime      @default(now()) @updatedAt @db.Timestamp(0)
+  attachments        Attachment[]
+  comments           Comment[]
+  tags               IncidentTag[]
+  client             Client        @relation(fields: [client_id], references: [id], map: "incidents_ibfk_1")
+  status             Status        @relation(fields: [status_id], references: [id], map: "incidents_ibfk_2")
+  priority           Priority?     @relation(fields: [priority_id], references: [id], map: "incidents_ibfk_3")
+  problem_type       ProblemType?  @relation(fields: [problem_type_id], references: [id], map: "incidents_ibfk_4")
+  severity           Severity?     @relation(fields: [severity_id], references: [id], map: "incidents_ibfk_5")
+  category           Category?     @relation(fields: [category_id], references: [id], map: "incidents_ibfk_6")
+  assigned_user      User?         @relation("AssignedIncidents", fields: [assigned_to], references: [id], map: "incidents_ibfk_7")
+  creator            User?         @relation("CreatedIncidents", fields: [created_by], references: [id], map: "incidents_ibfk_8")
+  time_entries       TimeEntry[]
+
+  @@index([client_id, status_id], map: "idx_incidents_client_status")
+  @@index([assigned_to, status_id], map: "idx_incidents_assigned_status")
+  @@index([opened_at], map: "idx_incidents_opened_at")
+  @@index([closed_at], map: "idx_incidents_closed_at")
+  @@index([category_id], map: "category_id")
+  @@index([created_by], map: "created_by")
+  @@index([priority_id], map: "priority_id")
+  @@index([problem_type_id], map: "problem_type_id")
+  @@index([severity_id], map: "severity_id")
+  @@index([status_id], map: "status_id")
+  @@map("incidents")
+}
+
+model TimeEntry {
+  id          BigInt    @id @default(autoincrement()) @db.UnsignedBigInt
+  incident_id BigInt    @db.UnsignedBigInt
+  user_id     Int?      @db.UnsignedInt
+  start_time  DateTime  @db.DateTime(0)
+  end_time    DateTime? @db.DateTime(0)
+  minutes     Int       @default(0) @db.UnsignedInt
+  description String?   @db.VarChar(500)
+  created_at  DateTime  @default(now()) @db.Timestamp(0)
+  updated_at  DateTime  @default(now()) @updatedAt @db.Timestamp(0)
+  incident    Incident  @relation(fields: [incident_id], references: [id], onDelete: Cascade, map: "time_entries_ibfk_1")
+  user        User?     @relation(fields: [user_id], references: [id], map: "time_entries_ibfk_2")
+
+  @@index([incident_id], map: "idx_time_entries_incident")
+  @@index([user_id], map: "idx_time_entries_user")
+  @@map("time_entries")
+}
+
+model Comment {
+  id          BigInt               @id @default(autoincrement()) @db.UnsignedBigInt
+  incident_id BigInt               @db.UnsignedBigInt
+  user_id     Int?                 @db.UnsignedInt
+  content     String               @db.Text
+  visibility  comments_visibility? @default(public)
+  created_at  DateTime             @default(now()) @db.Timestamp(0)
+  updated_at  DateTime             @default(now()) @updatedAt @db.Timestamp(0)
+  attachments Attachment[]
+  incident    Incident             @relation(fields: [incident_id], references: [id], onDelete: Cascade, map: "comments_ibfk_1")
+  user        User?                @relation(fields: [user_id], references: [id], map: "comments_ibfk_2")
+
+  @@index([incident_id], map: "idx_comments_incident")
+  @@index([user_id], map: "user_id")
+  @@map("comments")
+}
+
+model Attachment {
+  id           BigInt    @id @default(autoincrement()) @db.UnsignedBigInt
+  incident_id  BigInt?   @db.UnsignedBigInt
+  comment_id   BigInt?   @db.UnsignedBigInt
+  filename     String    @db.VarChar(255)
+  mime_type    String?   @db.VarChar(120)
+  file_size    Int?      @db.UnsignedInt
+  storage_path String?   @db.VarChar(600)
+  uploaded_by  Int?      @db.UnsignedInt
+  uploaded_at  DateTime  @default(now()) @db.Timestamp(0)
+  incident     Incident? @relation(fields: [incident_id], references: [id], onDelete: Cascade, map: "attachments_ibfk_1")
+  comment      Comment?  @relation(fields: [comment_id], references: [id], onDelete: Cascade, map: "attachments_ibfk_2")
+  user         User?     @relation(fields: [uploaded_by], references: [id], map: "attachments_ibfk_3")
+
+  @@index([incident_id], map: "idx_attachments_incident")
+  @@index([comment_id], map: "idx_attachments_comment")
+  @@index([uploaded_by], map: "uploaded_by")
+  @@map("attachments")
+}
+
+model IncidentTag {
+  incident_id BigInt   @db.UnsignedBigInt
+  tag_id      Int      @db.UnsignedSmallInt
+  incident    Incident @relation(fields: [incident_id], references: [id], onDelete: Cascade, map: "incident_tags_ibfk_1")
+  tag         Tag      @relation(fields: [tag_id], references: [id], onDelete: Cascade, map: "incident_tags_ibfk_2")
+
+  @@id([incident_id, tag_id])
+  @@index([tag_id], map: "tag_id")
+  @@map("incident_tags")
+}
+
+enum comments_visibility {
+  public
+  internal
+}
+
+enum users_role {
+  admin
+  tech
+  user
+  viewer
+}
