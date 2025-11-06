@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Servidor: 127.0.0.1
--- Tiempo de generación: 04-11-2025 a las 17:08:02
+-- Tiempo de generación: 06-11-2025 a las 02:11:32
 -- Versión del servidor: 10.4.16-MariaDB
 -- Versión de PHP: 7.4.12
 
@@ -79,6 +79,7 @@ CREATE TABLE `clients` (
   `postal_code` varchar(20) DEFAULT NULL,
   `country` varchar(100) DEFAULT 'España',
   `notes` text DEFAULT NULL,
+  `is_active` tinyint(1) NOT NULL DEFAULT 1,
   `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
   `updated_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp()
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
@@ -87,8 +88,9 @@ CREATE TABLE `clients` (
 -- Volcado de datos para la tabla `clients`
 --
 
-INSERT INTO `clients` (`id`, `name`, `legal_name`, `contact_name`, `contact_email`, `contact_phone`, `address`, `city`, `province`, `postal_code`, `country`, `notes`, `created_at`, `updated_at`) VALUES
-(1, 'ACME S.L.', NULL, 'María López', 'maria.lopez@acme.local', '600111222', 'C/ Falsa 123', 'Alicante', NULL, NULL, 'España', NULL, '2025-11-04 16:07:01', '2025-11-04 16:07:01');
+INSERT INTO `clients` (`id`, `name`, `legal_name`, `contact_name`, `contact_email`, `contact_phone`, `address`, `city`, `province`, `postal_code`, `country`, `notes`, `is_active`, `created_at`, `updated_at`) VALUES
+(1, 'ACME S.L.', NULL, 'María López', 'maria.lopez@acme.local', '600111222', 'C/ Falsa 123', 'Alicante', NULL, NULL, 'España', NULL, 1, '2025-11-04 16:07:01', '2025-11-05 15:19:14'),
+(2, 'Fran', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'España', NULL, 1, '2025-11-05 15:13:56', '2025-11-05 16:19:40');
 
 -- --------------------------------------------------------
 
@@ -105,6 +107,13 @@ CREATE TABLE `comments` (
   `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
   `updated_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp()
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+--
+-- Volcado de datos para la tabla `comments`
+--
+
+INSERT INTO `comments` (`id`, `incident_id`, `user_id`, `content`, `visibility`, `created_at`, `updated_at`) VALUES
+(1, 1, 1, 'He trabajado duramente', 'public', '2025-11-05 16:18:07', '2025-11-05 16:18:07');
 
 -- --------------------------------------------------------
 
@@ -145,7 +154,9 @@ CREATE TABLE `incidents` (
 --
 
 INSERT INTO `incidents` (`id`, `reference`, `client_id`, `title`, `description`, `status_id`, `priority_id`, `problem_type_id`, `severity_id`, `category_id`, `reported_by`, `reported_contact`, `assigned_to`, `created_by`, `opened_at`, `due_at`, `closed_at`, `estimated_minutes`, `time_spent_minutes`, `resolution`, `root_cause`, `sla_breach`, `archived`, `created_at`, `updated_at`) VALUES
-(1, 'INC-2025-0001', 1, 'No responde servidor web', 'El servidor web deja de responder intermitentemente', 1, 3, 1, 3, NULL, NULL, NULL, 2, 1, '2025-11-04 16:07:01', NULL, NULL, 120, 0, NULL, NULL, 0, 0, '2025-11-04 16:07:01', '2025-11-04 16:07:01');
+(1, 'INC-2025-0001', 1, 'No responde servidor web', 'El servidor web deja de responder intermitentemente. Actualizada', 4, 3, 1, 3, NULL, NULL, NULL, 2, 1, '2025-11-04 16:07:01', NULL, NULL, 120, 120, NULL, NULL, 0, 0, '2025-11-04 16:07:01', '2025-11-05 23:47:04'),
+(2, 'INC-2025-0002', 2, 'afdfa', 'adsfads', 1, 2, NULL, NULL, NULL, NULL, NULL, NULL, 1, '2025-11-05 15:36:32', NULL, NULL, 0, 0, NULL, NULL, 0, 0, '2025-11-05 15:36:32', '2025-11-05 15:36:32'),
+(3, 'INC-2025-0003', 2, 'dfadssfda', 'ads', 5, 2, NULL, NULL, NULL, NULL, NULL, NULL, 1, '2025-11-05 15:42:33', NULL, '2025-11-05 23:37:36', 0, 0, 'Todo correcto', NULL, 0, 0, '2025-11-05 15:42:33', '2025-11-05 23:37:36');
 
 -- --------------------------------------------------------
 
@@ -250,7 +261,7 @@ INSERT INTO `statuses` (`id`, `code`, `label`, `description`, `is_closed`, `disp
 (1, 'open', 'Abierta', 'Incidencia reportada y pendiente de asignación', 0, 10),
 (2, 'in_progress', 'En curso', 'Incidencia en trabajo', 0, 20),
 (3, 'waiting_customer', 'A la espera cliente', 'Pendiente respuesta del cliente', 0, 25),
-(4, 'resolved', 'Resuelta', 'Solución aplicada, pendiente verificación', 0, 30),
+(4, 'resolved', 'Resuelta', 'Solución aplicada, pendiente verificación', 1, 30),
 (5, 'closed', 'Cerrada', 'Incidencia cerrada', 1, 100),
 (6, 'cancelled', 'Cancelada', 'Incidencia anulada', 1, 110);
 
@@ -282,6 +293,14 @@ CREATE TABLE `time_entries` (
   `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
   `updated_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp()
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+--
+-- Volcado de datos para la tabla `time_entries`
+--
+
+INSERT INTO `time_entries` (`id`, `incident_id`, `user_id`, `start_time`, `end_time`, `minutes`, `description`, `created_at`, `updated_at`) VALUES
+(1, 1, 1, '2025-11-05 17:00:00', '2025-11-05 18:00:00', 60, NULL, '2025-11-05 16:01:06', '2025-11-05 16:01:06'),
+(2, 1, 1, '2025-11-05 17:08:00', '2025-11-05 18:08:00', 60, 'Otra tarea', '2025-11-05 16:09:09', '2025-11-05 16:09:09');
 
 --
 -- Disparadores `time_entries`
@@ -344,8 +363,8 @@ CREATE TABLE `users` (
 --
 
 INSERT INTO `users` (`id`, `username`, `full_name`, `email`, `phone`, `role`, `active`, `password_hash`, `created_at`, `updated_at`) VALUES
-(1, 'admin', 'Administrador del sistema', 'admin@local', NULL, 'admin', 1, NULL, '2025-11-04 16:07:01', '2025-11-04 16:07:01'),
-(2, 'tech1', 'Técnico Uno', 'tech1@local', NULL, 'tech', 1, NULL, '2025-11-04 16:07:01', '2025-11-04 16:07:01');
+(1, 'admin', 'Administrador del sistema', 'admin@local', NULL, 'admin', 1, '$2a$10$iAR/webNS.LI.PFW7n.4t.3YZU.pMUiASIlpyrwd0ytA9IKmRlUam', '2025-11-04 16:07:01', '2025-11-05 14:45:50'),
+(2, 'tech1', 'Técnico Uno', 'tech1@local', NULL, 'tech', 1, '$2a$10$t.i80dhhBxYVUcCtxMRnqO39xXNJDHBMvKUP6JnRJczvuswdJVUDC', '2025-11-04 16:07:01', '2025-11-05 14:45:50');
 
 -- --------------------------------------------------------
 
@@ -531,19 +550,19 @@ ALTER TABLE `categories`
 -- AUTO_INCREMENT de la tabla `clients`
 --
 ALTER TABLE `clients`
-  MODIFY `id` int(10) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=2;
+  MODIFY `id` int(10) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=4;
 
 --
 -- AUTO_INCREMENT de la tabla `comments`
 --
 ALTER TABLE `comments`
-  MODIFY `id` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT;
+  MODIFY `id` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=2;
 
 --
 -- AUTO_INCREMENT de la tabla `incidents`
 --
 ALTER TABLE `incidents`
-  MODIFY `id` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=2;
+  MODIFY `id` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=4;
 
 --
 -- AUTO_INCREMENT de la tabla `priorities`
@@ -579,7 +598,7 @@ ALTER TABLE `tags`
 -- AUTO_INCREMENT de la tabla `time_entries`
 --
 ALTER TABLE `time_entries`
-  MODIFY `id` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT;
+  MODIFY `id` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=3;
 
 --
 -- AUTO_INCREMENT de la tabla `users`
