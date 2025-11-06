@@ -34,6 +34,7 @@ export const listIncidents = asyncHandler(async (req: Request, res: Response) =>
     assignedTo,
     createdBy,
     q,
+    search,
     archived,
     sla_breach,
     page = 1,
@@ -46,23 +47,24 @@ export const listIncidents = asyncHandler(async (req: Request, res: Response) =>
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const where: any = {};
 
-  if (clientId) where.client_id = clientId;
-  if (statusId) where.status_id = statusId;
-  if (priorityId) where.priority_id = priorityId;
-  if (severityId) where.severity_id = severityId;
-  if (categoryId) where.category_id = categoryId;
-  if (problemTypeId) where.problem_type_id = problemTypeId;
-  if (assignedTo) where.assigned_to = assignedTo;
-  if (createdBy) where.created_by = createdBy;
+  if (clientId) where.client_id = Number(clientId);
+  if (statusId) where.status_id = Number(statusId);
+  if (priorityId) where.priority_id = Number(priorityId);
+  if (severityId) where.severity_id = Number(severityId);
+  if (categoryId) where.category_id = Number(categoryId);
+  if (problemTypeId) where.problem_type_id = Number(problemTypeId);
+  if (assignedTo) where.assigned_to = Number(assignedTo);
+  if (createdBy) where.created_by = Number(createdBy);
   if (archived !== undefined) where.archived = archived;
   if (sla_breach !== undefined) where.sla_breach = sla_breach;
 
   // Búsqueda por texto en referencia o título
-  if (q) {
+  const searchTerm = search || q;
+  if (searchTerm) {
     where.OR = [
-      { reference: { contains: q } },
-      { title: { contains: q } },
-      { description: { contains: q } },
+      { reference: { contains: searchTerm } },
+      { title: { contains: searchTerm } },
+      { description: { contains: searchTerm } },
     ];
   }
 
@@ -476,6 +478,66 @@ export const changeIncidentStatus = asyncHandler(async (req: Request, res: Respo
 });
 
 /**
+ * Cerrar incidencia
+ * PATCH /api/incidents/:id/close
+ */
+export const closeIncident = asyncHandler(async (req: Request, res: Response) => {
+  const id = parseInt(req.params.id);
+  const { resolution, root_cause } = req.body;
+
+  // Verificar que existe
+  const existing = await prisma.incident.findUnique({
+    where: { id },
+    include: { status: true },
+  });
+
+  if (!existing) {
+    throw new AppError('Incidencia no encontrada', 404);
+  }
+
+  // Buscar un estado cerrado
+  const closedStatus = await prisma.status.findFirst({
+    where: { is_closed: true },
+    orderBy: { id: 'asc' },
+  });
+
+  if (!closedStatus) {
+    throw new AppError('No existe un estado de cierre configurado', 500);
+  }
+
+  // Cerrar la incidencia
+  const incident = await prisma.incident.update({
+    where: { id },
+    data: {
+      status_id: closedStatus.id,
+      closed_at: new Date(),
+      resolution: resolution || existing.resolution,
+      root_cause: root_cause || existing.root_cause,
+    },
+    include: {
+      client: true,
+      status: true,
+      priority: true,
+      severity: true,
+      category: true,
+      problem_type: true,
+      assigned_user: {
+        select: {
+          id: true,
+          username: true,
+          full_name: true,
+        },
+      },
+    },
+  });
+
+  res.json({
+    message: 'Incidencia cerrada exitosamente',
+    incident,
+  });
+});
+
+/**
  * Eliminar incidencia (soft delete - archivar)
  * DELETE /api/incidents/:id
  */
@@ -508,18 +570,102 @@ export const getIncidentsSummary = asyncHandler(async (req: Request, res: Respon
     where: { archived: false },
   });
 
-  // Por estado
+  // Obtener IDs de estados por código para ser más robusto
+  const statuses = await prisma.status.findMany({
+    select: { id: true, code: true, is_closed: true },
+  });
+
+  const getStatusId = (code: string) => statuses.find((s) => s.code === code)?.id;
+
+  // Por estado - contadores específicos usando códigos
+  const openCount = await prisma.incident.count({
+    where: { archived: false, status_id: getStatusId('open') }, // open
+  });
+
+  const inProgressCount = await prisma.incident.count({
+    where: { archived: false, status_id: getStatusId('in_progress') }, // in_progress
+  });
+
+  const resolvedCount = await prisma.incident.count({
+    where: { archived: false, status_id: getStatusId('resolved') }, // resolved
+  });
+
+  const closedCount = await prisma.incident.count({
+    where: {
+      archived: false,
+      status: { is_closed: true },
+    },
+  });
+
+  // Por estado (array completo para compatibilidad)
   const byStatus = await prisma.incident.groupBy({
     by: ['status_id'],
     _count: true,
     where: { archived: false },
   });
 
-  // Por prioridad
-  const byPriority = await prisma.incident.groupBy({
+  // Por prioridad con nombres
+  const priorityGroups = await prisma.incident.groupBy({
     by: ['priority_id'],
     _count: true,
     where: { archived: false },
+  });
+
+  // Obtener los nombres de las prioridades
+  const priorities = await prisma.priority.findMany({
+    select: { id: true, label: true, code: true },
+  });
+
+  const byPriority = priorityGroups.map((group) => {
+    const priority = priorities.find((p) => p.id === group.priority_id);
+    return {
+      priorityId: group.priority_id,
+      priorityLabel: priority?.label || 'Sin prioridad',
+      priorityCode: priority?.code || 'none',
+      count: group._count,
+    };
+  });
+
+  // Incidencias más urgentes abiertas (ordenadas por prioridad: urgente > alta > media > baja)
+  const highPriorityIncidents = await prisma.incident.findMany({
+    where: {
+      archived: false,
+      status: {
+        is_closed: false,
+      },
+    },
+    include: {
+      client: {
+        select: {
+          id: true,
+          name: true,
+        },
+      },
+      status: {
+        select: {
+          id: true,
+          code: true,
+          label: true,
+        },
+      },
+      priority: {
+        select: {
+          id: true,
+          code: true,
+          label: true,
+          display_order: true,
+        },
+      },
+    },
+    orderBy: [
+      {
+        priority: {
+          display_order: 'asc', // Menor display_order = mayor prioridad
+        },
+      },
+      { opened_at: 'asc' }, // Más antiguas primero
+    ],
+    take: 5, // Mostrar las 5 más urgentes
   });
 
   // Por cliente (top 10)
@@ -551,8 +697,13 @@ export const getIncidentsSummary = asyncHandler(async (req: Request, res: Respon
   res.json({
     summary: {
       total,
+      open: openCount,
+      in_progress: inProgressCount,
+      resolved: resolvedCount,
+      closed: closedCount,
       byStatus,
       byPriority,
+      highPriorityIncidents,
       byClient,
       timeStats: {
         totalSpentMinutes: timeStats._sum.time_spent_minutes || 0,

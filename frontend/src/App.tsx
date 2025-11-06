@@ -1,12 +1,18 @@
-import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
-import { AuthProvider, useAuth } from './hooks/useAuth';
-import LoginPage from './pages/LoginPage';
-import Dashboard from './pages/Dashboard';
-import ClientsPage from './pages/ClientsPage';
-import ClientDetail from './pages/ClientDetail';
-import IncidentsPage from './pages/IncidentsPage';
-import IncidentDetail from './pages/IncidentDetail';
-import IncidentForm from './pages/IncidentForm';
+import {
+  BrowserRouter as Router,
+  Routes,
+  Route,
+  Navigate,
+} from "react-router-dom";
+import { AuthProvider, useAuth } from "./hooks/useAuth";
+import LoginPage from "./pages/LoginPage";
+import Dashboard from "./pages/Dashboard";
+import ClientsPage from "./pages/ClientsPage";
+import ClientDetail from "./pages/ClientDetail";
+import ClientForm from "./pages/ClientForm";
+import IncidentsPage from "./pages/IncidentsPage";
+import IncidentDetail from "./pages/IncidentDetail";
+import IncidentForm from "./pages/IncidentForm";
 
 // Componente para rutas protegidas
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
@@ -53,6 +59,22 @@ function App() {
             }
           />
           <Route
+            path="/clients/new"
+            element={
+              <ProtectedRoute>
+                <ClientForm />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/clients/:id/edit"
+            element={
+              <ProtectedRoute>
+                <ClientForm />
+              </ProtectedRoute>
+            }
+          />
+          <Route
             path="/clients/:id"
             element={
               <ProtectedRoute>
@@ -70,6 +92,14 @@ function App() {
           />
           <Route
             path="/incidents/new"
+            element={
+              <ProtectedRoute>
+                <IncidentForm />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/incidents/:id/edit"
             element={
               <ProtectedRoute>
                 <IncidentForm />

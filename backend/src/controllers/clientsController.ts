@@ -79,6 +79,7 @@ export const createClient = asyncHandler(async (req: Request, res: Response) => 
       postal_code: data.postal_code || null,
       country: data.country || 'España',
       notes: data.notes || null,
+      is_active: data.is_active !== undefined ? data.is_active : true,
     },
   });
 
@@ -104,17 +105,18 @@ export const updateClient = asyncHandler(async (req: Request, res: Response) => 
   const client = await prisma.client.update({
     where: { id },
     data: {
-      ...(data.name !== undefined && { name: data.name }),
-      ...(data.legal_name !== undefined && { legal_name: data.legal_name }),
-      ...(data.contact_name !== undefined && { contact_name: data.contact_name }),
-      ...(data.contact_email !== undefined && { contact_email: data.contact_email }),
-      ...(data.contact_phone !== undefined && { contact_phone: data.contact_phone }),
-      ...(data.address !== undefined && { address: data.address }),
-      ...(data.city !== undefined && { city: data.city }),
-      ...(data.province !== undefined && { province: data.province }),
-      ...(data.postal_code !== undefined && { postal_code: data.postal_code }),
-      ...(data.country !== undefined && { country: data.country }),
-      ...(data.notes !== undefined && { notes: data.notes }),
+      name: data.name,
+      legal_name: data.legal_name ?? null,
+      contact_name: data.contact_name ?? null,
+      contact_email: data.contact_email ?? null,
+      contact_phone: data.contact_phone ?? null,
+      address: data.address ?? null,
+      city: data.city ?? null,
+      province: data.province ?? null,
+      postal_code: data.postal_code ?? null,
+      country: data.country ?? 'España',
+      notes: data.notes ?? null,
+      is_active: data.is_active ?? true,
     },
   });
 

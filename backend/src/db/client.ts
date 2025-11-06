@@ -25,4 +25,10 @@ if (process.env.NODE_ENV !== 'production') {
   global.prisma = prisma;
 }
 
+// Serializar BigInt a String para JSON
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+(BigInt.prototype as any).toJSON = function () {
+  return this.toString();
+};
+
 export default prisma;

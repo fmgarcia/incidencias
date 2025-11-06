@@ -1,47 +1,87 @@
-import { useState, useEffect } from 'react';
-import { useNavigate, useLocation } from 'react-router-dom';
-import Layout from '../components/Layout';
-import { incidentsApi, CreateIncidentData } from '../api/incidents';
-import { clientsApi, Client } from '../api/clients';
+import { useState, useEffect } from "react";
+import { useNavigate, useLocation, useParams, Link } from "react-router-dom";
+import Layout from "../components/Layout";
+import { incidentsApi, CreateIncidentData } from "../api/incidents";
+import { clientsApi, Client } from "../api/clients";
 
 export default function IncidentForm() {
+  const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const location = useLocation();
   const [loading, setLoading] = useState(false);
+  const [loadingIncident, setLoadingIncident] = useState(false);
   const [clients, setClients] = useState<Client[]>([]);
-  const [error, setError] = useState('');
+  const [error, setError] = useState("");
 
   const [formData, setFormData] = useState<CreateIncidentData>({
-    title: '',
-    description: '',
-    client_id: (location.state as any)?.clientId || '',
+    title: "",
+    description: "",
+    client_id: (location.state as any)?.clientId || "",
     priority_id: 2, // Media por defecto
     status_id: 1, // Abierto por defecto
   });
 
   useEffect(() => {
     loadClients();
-  }, []);
+    if (id) {
+      loadIncident(id);
+    }
+  }, [id]);
 
   const loadClients = async () => {
     try {
       const data = await clientsApi.getAll();
-      setClients(data.filter((c) => c.is_active));
+      setClients((data.clients || []).filter((c) => c.is_active));
     } catch (error) {
-      console.error('Error loading clients:', error);
+      console.error("Error loading clients:", error);
+      setClients([]);
+    }
+  };
+
+  const loadIncident = async (incidentId: string) => {
+    try {
+      setLoadingIncident(true);
+      const incident = await incidentsApi.getById(incidentId);
+      setFormData({
+        title: incident.title,
+        description: incident.description || "",
+        client_id: incident.client_id,
+        priority_id: incident.priority_id,
+        status_id: incident.status_id,
+        severity_id: incident.severity_id,
+        problem_type_id: incident.problem_type_id,
+        category_id: incident.category_id,
+        assigned_to: incident.assigned_to,
+        due_date: incident.due_date,
+      });
+    } catch (error) {
+      console.error("Error loading incident:", error);
+      setError("Error al cargar la incidencia");
+    } finally {
+      setLoadingIncident(false);
     }
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setError('');
+    setError("");
     setLoading(true);
 
     try {
-      const incident = await incidentsApi.create(formData);
-      navigate(`/incidents/${incident.id}`);
+      if (id) {
+        // Actualizar incidencia existente
+        await incidentsApi.update(id, formData);
+        navigate(`/incidents/${id}`);
+      } else {
+        // Crear nueva incidencia
+        const incident = await incidentsApi.create(formData);
+        navigate(`/incidents/${incident.id}`);
+      }
     } catch (err: any) {
-      setError(err.response?.data?.error || 'Error al crear la incidencia');
+      setError(
+        err.response?.data?.error ||
+          `Error al ${id ? "actualizar" : "crear"} la incidencia`
+      );
     } finally {
       setLoading(false);
     }
@@ -56,21 +96,39 @@ export default function IncidentForm() {
     setFormData((prev) => ({
       ...prev,
       [name]:
-        name === 'priority_id' || name === 'status_id'
-          ? Number(value)
-          : value,
+        name === "priority_id" || name === "status_id" ? Number(value) : value,
     }));
   };
+
+  if (loadingIncident) {
+    return (
+      <Layout>
+        <div className="flex items-center justify-center h-64">
+          <p className="text-gray-500">Cargando incidencia...</p>
+        </div>
+      </Layout>
+    );
+  }
 
   return (
     <Layout>
       <div className="max-w-3xl mx-auto space-y-6">
         <div>
+          {id && (
+            <Link
+              to={`/incidents/${id}`}
+              className="text-blue-600 hover:text-blue-700 text-sm mb-2 inline-block"
+            >
+              ← Volver a la incidencia
+            </Link>
+          )}
           <h1 className="text-2xl font-bold text-gray-900">
-            Nueva Incidencia
+            {id ? "Editar Incidencia" : "Nueva Incidencia"}
           </h1>
           <p className="text-gray-600 mt-1">
-            Registra una nueva incidencia en el sistema
+            {id
+              ? "Modifica los datos de la incidencia"
+              : "Registra una nueva incidencia en el sistema"}
           </p>
         </div>
 
@@ -157,7 +215,7 @@ export default function IncidentForm() {
                   <select
                     name="severity_id"
                     className="input"
-                    value={formData.severity_id || ''}
+                    value={formData.severity_id || ""}
                     onChange={handleChange}
                   >
                     <option value="">No especificada</option>
@@ -174,7 +232,7 @@ export default function IncidentForm() {
                   <select
                     name="problem_type_id"
                     className="input"
-                    value={formData.problem_type_id || ''}
+                    value={formData.problem_type_id || ""}
                     onChange={handleChange}
                   >
                     <option value="">No especificado</option>
@@ -190,7 +248,7 @@ export default function IncidentForm() {
                   <select
                     name="category_id"
                     className="input"
-                    value={formData.category_id || ''}
+                    value={formData.category_id || ""}
                     onChange={handleChange}
                   >
                     <option value="">No especificada</option>
@@ -207,7 +265,7 @@ export default function IncidentForm() {
                   type="datetime-local"
                   name="due_date"
                   className="input"
-                  value={formData.due_date || ''}
+                  value={formData.due_date || ""}
                   onChange={handleChange}
                 />
               </div>
@@ -223,7 +281,13 @@ export default function IncidentForm() {
               Cancelar
             </button>
             <button type="submit" className="btn-primary" disabled={loading}>
-              {loading ? 'Creando...' : 'Crear Incidencia'}
+              {loading
+                ? id
+                  ? "Actualizando..."
+                  : "Creando..."
+                : id
+                  ? "Actualizar Incidencia"
+                  : "Crear Incidencia"}
             </button>
           </div>
         </form>

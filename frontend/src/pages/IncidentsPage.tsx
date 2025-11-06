@@ -1,9 +1,9 @@
-import { useEffect, useState } from 'react';
-import { Link } from 'react-router-dom';
-import Layout from '../components/Layout';
-import Pagination from '../components/Pagination';
-import { incidentsApi, Incident, IncidentFilters } from '../api/incidents';
-import { clientsApi, Client } from '../api/clients';
+import { useEffect, useState } from "react";
+import { Link } from "react-router-dom";
+import Layout from "../components/Layout";
+import Pagination from "../components/Pagination";
+import { incidentsApi, Incident, IncidentFilters } from "../api/incidents";
+import { clientsApi, Client } from "../api/clients";
 
 export default function IncidentsPage() {
   const [incidents, setIncidents] = useState<Incident[]>([]);
@@ -31,9 +31,10 @@ export default function IncidentsPage() {
   const loadClients = async () => {
     try {
       const data = await clientsApi.getAll();
-      setClients(data);
+      setClients(data.clients || []);
     } catch (error) {
-      console.error('Error loading clients:', error);
+      console.error("Error loading clients:", error);
+      setClients([]);
     }
   };
 
@@ -41,10 +42,11 @@ export default function IncidentsPage() {
     try {
       setLoading(true);
       const response = await incidentsApi.getAll(filters);
-      setIncidents(response.data);
+      setIncidents(response.incidents || response.data || []);
       setPagination(response.pagination);
     } catch (error) {
-      console.error('Error loading incidents:', error);
+      console.error("Error loading incidents:", error);
+      setIncidents([]);
     } finally {
       setLoading(false);
     }
@@ -54,22 +56,22 @@ export default function IncidentsPage() {
     setFilters((prev) => ({
       ...prev,
       [key]: value,
-      page: key === 'page' ? value : 1, // Reset to page 1 when changing other filters
+      page: key === "page" ? value : 1, // Reset to page 1 when changing other filters
     }));
   };
 
   const getPriorityColor = (priority?: string) => {
     switch (priority) {
-      case 'urgent':
-        return 'bg-red-100 text-red-800';
-      case 'high':
-        return 'bg-orange-100 text-orange-800';
-      case 'medium':
-        return 'bg-yellow-100 text-yellow-800';
-      case 'low':
-        return 'bg-green-100 text-green-800';
+      case "urgent":
+        return "bg-red-100 text-red-800";
+      case "high":
+        return "bg-orange-100 text-orange-800";
+      case "medium":
+        return "bg-yellow-100 text-yellow-800";
+      case "low":
+        return "bg-green-100 text-green-800";
       default:
-        return 'bg-gray-100 text-gray-800';
+        return "bg-gray-100 text-gray-800";
     }
   };
 
@@ -95,9 +97,9 @@ export default function IncidentsPage() {
               <label className="label">Cliente</label>
               <select
                 className="input"
-                value={filters.clientId || ''}
+                value={filters.clientId || ""}
                 onChange={(e) =>
-                  handleFilterChange('clientId', e.target.value || undefined)
+                  handleFilterChange("clientId", e.target.value || undefined)
                 }
               >
                 <option value="">Todos los clientes</option>
@@ -113,10 +115,10 @@ export default function IncidentsPage() {
               <label className="label">Estado</label>
               <select
                 className="input"
-                value={filters.statusId || ''}
+                value={filters.statusId || ""}
                 onChange={(e) =>
                   handleFilterChange(
-                    'statusId',
+                    "statusId",
                     e.target.value ? Number(e.target.value) : undefined
                   )
                 }
@@ -135,10 +137,10 @@ export default function IncidentsPage() {
               <label className="label">Prioridad</label>
               <select
                 className="input"
-                value={filters.priorityId || ''}
+                value={filters.priorityId || ""}
                 onChange={(e) =>
                   handleFilterChange(
-                    'priorityId',
+                    "priorityId",
                     e.target.value ? Number(e.target.value) : undefined
                   )
                 }
@@ -157,8 +159,10 @@ export default function IncidentsPage() {
                 type="text"
                 className="input"
                 placeholder="Título o descripción..."
-                value={filters.search || ''}
-                onChange={(e) => handleFilterChange('search', e.target.value || undefined)}
+                value={filters.search || ""}
+                onChange={(e) =>
+                  handleFilterChange("search", e.target.value || undefined)
+                }
               />
             </div>
           </div>
@@ -172,7 +176,7 @@ export default function IncidentsPage() {
         ) : (
           <>
             <div className="space-y-3">
-              {incidents.length === 0 ? (
+              {!incidents || incidents.length === 0 ? (
                 <div className="card text-center py-12">
                   <p className="text-gray-500">No se encontraron incidencias</p>
                 </div>
@@ -207,14 +211,20 @@ export default function IncidentsPage() {
                           <span>{incident.client?.name}</span>
                           <span>•</span>
                           <span>
-                            {new Date(incident.reported_date).toLocaleDateString()}
+                            {new Date(
+                              incident.reported_date
+                            ).toLocaleDateString()}
                           </span>
                           {incident._count && (
                             <>
                               <span>•</span>
-                              <span>{incident._count.comments} comentarios</span>
+                              <span>
+                                {incident._count.comments} comentarios
+                              </span>
                               <span>•</span>
-                              <span>{incident._count.attachments} archivos</span>
+                              <span>
+                                {incident._count.attachments} archivos
+                              </span>
                             </>
                           )}
                         </div>
@@ -235,7 +245,7 @@ export default function IncidentsPage() {
               <Pagination
                 currentPage={pagination.page}
                 totalPages={pagination.totalPages}
-                onPageChange={(page) => handleFilterChange('page', page)}
+                onPageChange={(page) => handleFilterChange("page", page)}
               />
             )}
           </>

@@ -9,6 +9,7 @@ import {
   createIncident,
   updateIncident,
   changeIncidentStatus,
+  closeIncident,
   deleteIncident,
   getIncidentsSummary,
 } from '../controllers/incidentsController';
@@ -58,6 +59,9 @@ router.patch(
   validate(changeStatusSchema),
   changeIncidentStatus
 );
+
+// Cerrar incidencia (admin, tech)
+router.patch('/:id/close', authorizeRoles('admin', 'tech'), closeIncident);
 
 // Eliminar/Archivar incidencia (solo admin)
 router.delete('/:id', authorizeRoles('admin'), deleteIncident);

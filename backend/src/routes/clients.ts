@@ -30,6 +30,7 @@ router.post('/', authorizeRoles('admin', 'tech'), validate(createClientSchema), 
 
 // Actualizar cliente (admin, tech)
 router.put('/:id', authorizeRoles('admin', 'tech'), validate(updateClientSchema), updateClient);
+router.patch('/:id', authorizeRoles('admin', 'tech'), validate(updateClientSchema), updateClient);
 
 // Eliminar cliente (solo admin)
 router.delete('/:id', authorizeRoles('admin'), deleteClient);

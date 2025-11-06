@@ -1,12 +1,12 @@
-import { useEffect, useState } from 'react';
-import { Link } from 'react-router-dom';
-import Layout from '../components/Layout';
-import { clientsApi, Client } from '../api/clients';
+import { useEffect, useState } from "react";
+import { Link } from "react-router-dom";
+import Layout from "../components/Layout";
+import { clientsApi, Client } from "../api/clients";
 
 export default function ClientsPage() {
   const [clients, setClients] = useState<Client[]>([]);
   const [loading, setLoading] = useState(true);
-  const [search, setSearch] = useState('');
+  const [search, setSearch] = useState("");
 
   useEffect(() => {
     loadClients();
@@ -16,9 +16,10 @@ export default function ClientsPage() {
     try {
       setLoading(true);
       const data = await clientsApi.getAll();
-      setClients(data);
+      setClients(data.clients || []);
     } catch (error) {
-      console.error('Error loading clients:', error);
+      console.error("Error loading clients:", error);
+      setClients([]);
     } finally {
       setLoading(false);
     }
@@ -27,8 +28,8 @@ export default function ClientsPage() {
   const filteredClients = clients.filter(
     (client) =>
       client.name.toLowerCase().includes(search.toLowerCase()) ||
-      client.cif.toLowerCase().includes(search.toLowerCase()) ||
-      client.email?.toLowerCase().includes(search.toLowerCase())
+      client.legal_name?.toLowerCase().includes(search.toLowerCase()) ||
+      client.contact_email?.toLowerCase().includes(search.toLowerCase())
   );
 
   if (loading) {
@@ -47,15 +48,20 @@ export default function ClientsPage() {
         <div className="flex items-center justify-between">
           <div>
             <h1 className="text-2xl font-bold text-gray-900">Clientes</h1>
-            <p className="text-gray-600 mt-1">{clients.length} clientes registrados</p>
+            <p className="text-gray-600 mt-1">
+              {clients.length} clientes registrados
+            </p>
           </div>
+          <Link to="/clients/new" className="btn-primary">
+            + Nuevo Cliente
+          </Link>
         </div>
 
         {/* Búsqueda */}
         <div className="card">
           <input
             type="text"
-            placeholder="Buscar por nombre, CIF o email..."
+            placeholder="Buscar por nombre, nombre legal o email..."
             className="input"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
@@ -77,26 +83,38 @@ export default function ClientsPage() {
               >
                 <div className="flex items-start justify-between">
                   <div className="flex-1">
-                    <h3 className="font-semibold text-gray-900">{client.name}</h3>
-                    <p className="text-sm text-gray-600 mt-1">CIF: {client.cif}</p>
-                    {client.email && (
-                      <p className="text-sm text-gray-600 mt-1">{client.email}</p>
+                    <h3 className="font-semibold text-gray-900">
+                      {client.name}
+                    </h3>
+                    {client.legal_name && (
+                      <p className="text-sm text-gray-600 mt-1">
+                        {client.legal_name}
+                      </p>
                     )}
-                    {client.phone && (
-                      <p className="text-sm text-gray-600 mt-1">{client.phone}</p>
+                    {client.contact_email && (
+                      <p className="text-sm text-gray-600 mt-1">
+                        {client.contact_email}
+                      </p>
+                    )}
+                    {client.contact_phone && (
+                      <p className="text-sm text-gray-600 mt-1">
+                        {client.contact_phone}
+                      </p>
                     )}
                     {client.city && (
-                      <p className="text-sm text-gray-500 mt-2">{client.city}</p>
+                      <p className="text-sm text-gray-500 mt-2">
+                        {client.city}
+                      </p>
                     )}
                   </div>
                   <span
                     className={`rounded-full px-2 py-1 text-xs font-semibold ${
                       client.is_active
-                        ? 'bg-green-100 text-green-800'
-                        : 'bg-gray-100 text-gray-800'
+                        ? "bg-green-100 text-green-800"
+                        : "bg-gray-100 text-gray-800"
                     }`}
                   >
-                    {client.is_active ? 'Activo' : 'Inactivo'}
+                    {client.is_active ? "Activo" : "Inactivo"}
                   </span>
                 </div>
               </Link>

@@ -67,6 +67,7 @@ export const incidentQuerySchema = z.object({
   assignedTo: z.coerce.number().int().positive().optional(),
   createdBy: z.coerce.number().int().positive().optional(),
   q: z.string().optional(), // Búsqueda por referencia o título
+  search: z.string().optional(), // Alias para búsqueda
   archived: z.coerce.boolean().optional(),
   sla_breach: z.coerce.boolean().optional(),
   page: z.coerce.number().int().positive().default(1).optional(),
@@ -80,17 +81,15 @@ export const incidentQuerySchema = z.object({
 
 // Schema para añadir time entry
 export const createTimeEntrySchema = z.object({
-  incidentId: z.coerce.number().int().positive(),
   userId: z.number().int().positive().optional().nullable(),
-  start_time: z.string().datetime('Debe ser una fecha válida'),
-  end_time: z.string().datetime('Debe ser una fecha válida').optional().nullable(),
-  minutes: z.number().int().min(0, 'Los minutos deben ser un número positivo'),
+  start_time: z.string(),
+  end_time: z.string().optional().nullable(),
+  minutes: z.number().int().min(1, 'Los minutos deben ser mayor a 0'),
   description: z.string().max(500).optional().nullable(),
 });
 
 // Schema para añadir comentario
 export const createCommentSchema = z.object({
-  incidentId: z.coerce.number().int().positive(),
   userId: z.number().int().positive().optional().nullable(),
   content: z.string().min(1, 'El contenido del comentario no puede estar vacío'),
   visibility: z.enum(['public', 'internal']).default('public').optional(),

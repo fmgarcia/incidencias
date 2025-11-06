@@ -18,6 +18,7 @@ import timeEntriesRoutes from './routes/timeEntries';
 import commentsRoutes from './routes/comments';
 import attachmentsRoutes from './routes/attachments';
 import tagsRoutes from './routes/tags';
+import catalogsRoutes from './routes/catalogs';
 
 const app: Application = express();
 
@@ -70,6 +71,7 @@ app.use('/api/time-entries', timeEntriesRoutes);
 app.use('/api/comments', commentsRoutes);
 app.use('/api/attachments', attachmentsRoutes);
 app.use('/api/tags', tagsRoutes);
+app.use('/api/statuses', catalogsRoutes);
 
 // Servir archivos estáticos de uploads (opcional, con protección)
 app.use('/uploads', express.static(config.upload.directory));
